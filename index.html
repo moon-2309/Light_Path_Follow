@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Light Path Puzzle ✨</title>
+<style>
+body {
+    margin: 0;
+    background: radial-gradient(circle at top, #0f2027, #203a43, #2c5364);
+    font-family: sans-serif;
+    color: white;
+    text-align: center;
+}
+
+h1 { margin: 20px; }
+
+#game {
+    display: grid;
+    grid-template-columns: repeat(6, 80px);
+    grid-template-rows: repeat(6, 80px);
+    gap: 6px;
+    justify-content: center;
+}
+
+.cell {
+    width: 80px;
+    height: 80px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 12px;
+    position: relative;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.cell:hover { background: rgba(255,255,255,0.1); }
+
+/* CLEAR MIRROR DESIGN (corner reflectors) */
+.mirror {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+}
+
+/* two clear types instead of confusing slashes */
+.mirror.type1::after { content: "↘"; } /* right->down, up->left */
+.mirror.type2::after { content: "↗"; } /* right->up, down->left */
+
+.source {
+    background: radial-gradient(circle, #00f2ff, #0066ff);
+}
+
+.target {
+    background: radial-gradient(circle, #ffcc00, #ff6600);
+}
+
+.light {
+    background: rgba(0,255,255,0.2);
+    box-shadow: 0 0 15px 5px rgba(0,255,255,0.9);
+}
+
+button {
+    margin-top: 20px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 10px;
+    background: #00c6ff;
+    color: white;
+    cursor: pointer;
+}
+</style>
+</head>
+<body>
+
+<h1>✨ Light Path Puzzle</h1>
+<p>Rotate mirrors to guide the light to the target</p>
+
+<div id="game"></div>
+<button onclick="shootLight()">Fire Light</button>
+
+<script>
+const gridSize = 6;
+const game = document.getElementById("game");
+let grid = [];
+
+let source = {x: 0, y: 2, dir: 'right'};
+let target = {x: 5, y: 3};
+
+function createGrid() {
+    game.innerHTML = "";
+    grid = [];
+
+    for (let y = 0; y < gridSize; y++) {
+        let row = [];
+        for (let x = 0; x < gridSize; x++) {
+            let cell = document.createElement("div");
+            cell.classList.add("cell");
+
+            let obj = {type: 'empty', el: cell, mirrorType: 1};
+
+            if (Math.random() < 0.3 && !(x===source.x && y===source.y)) {
+                obj.type = 'mirror';
+                obj.mirrorType = Math.random() < 0.5 ? 1 : 2;
+                cell.classList.add("mirror", obj.mirrorType === 1 ? "type1" : "type2");
+            }
+
+            cell.onclick = () => rotateMirror(obj);
+
+            game.appendChild(cell);
+            row.push(obj);
+        }
+        grid.push(row);
+    }
+
+    grid[source.y][source.x].type = 'source';
+    grid[source.y][source.x].el.classList.add('source');
+
+    grid[target.y][target.x].type = 'target';
+    grid[target.y][target.x].el.classList.add('target');
+}
+
+function rotateMirror(obj) {
+    if (obj.type !== 'mirror') return;
+
+    obj.mirrorType = obj.mirrorType === 1 ? 2 : 1;
+
+    obj.el.classList.toggle("type1");
+    obj.el.classList.toggle("type2");
+}
+
+async function shootLight() {
+    clearLight();
+
+    let x = source.x;
+    let y = source.y;
+    let dir = source.dir;
+
+    while (true) {
+        await delay(120); // animation speed
+
+        if (dir === 'right') x++;
+        if (dir === 'left') x--;
+        if (dir === 'up') y--;
+        if (dir === 'down') y++;
+
+        if (x < 0 || y < 0 || x >= gridSize || y >= gridSize) break;
+
+        let cell = grid[y][x];
+        cell.el.classList.add('light');
+
+        if (cell.type === 'target') {
+            setTimeout(()=>alert("🎉 You solved it!"),150);
+            break;
+        }
+
+        if (cell.type === 'mirror') {
+            if (cell.mirrorType === 1) {
+                if (dir === 'right') dir = 'down';
+                else if (dir === 'left') dir = 'up';
+                else if (dir === 'up') dir = 'left';
+                else if (dir === 'down') dir = 'right';
+            } else {
+                if (dir === 'right') dir = 'up';
+                else if (dir === 'left') dir = 'down';
+                else if (dir === 'up') dir = 'right';
+                else if (dir === 'down') dir = 'left';
+            }
+        }
+    }
+}
+
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function clearLight() {
+    grid.flat().forEach(c => c.el.classList.remove('light'));
+}
+
+createGrid();
+</script>
+
+</body>
+</html>
